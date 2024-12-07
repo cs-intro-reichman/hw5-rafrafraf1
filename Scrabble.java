@@ -47,8 +47,12 @@ public class Scrabble {
 	}
 
 	// Checks if the given word is in the dictionary.
-	public static boolean isWordInDictionary(String word) {
-		//// Replace the following statement with your code
+	private static boolean isWordInDictionary(String word) {
+		for (int i = 0; i < DICTIONARY.length; i++) {
+			if (word.equals(DICTIONARY[i])) {
+				return true;
+			}
+		}
 		return false;
 	}
 	
@@ -56,16 +60,84 @@ public class Scrabble {
 	// If the length of the word equals the length of the hand, adds 50 points to the score.
 	// If the word includes the sequence "runi", adds 1000 points to the game.
 	public static int wordScore(String word) {
-		//// Replace the following statement with your code
-		return 0;
+		int sum = 0;
+
+		char c;
+		for (int i = 0; i < word.length(); i++) {
+			c = word.charAt(i);
+			sum += SCRABBLE_LETTER_VALUES[ (int) word.charAt(i) - 97 ];
+		}
+		sum *= word.length();
+
+		sum += (word.length() == HAND_SIZE ? 50 : 0);
+
+		sum += (MyString.subsetOf("runi", word) ? 1000 : 0);
+		
+		return sum;
 	}
+
+	// creates a random string of chars based on the frequency of each char in our dictionary
+	public static String frequencyOfCharBasedRandomStringOfLetters(int size) {
+		int[] frequencyArr = new int[26];
+		int currCharFrequencySum;
+		for (int i = 97; i <= 122; i ++) {
+			currCharFrequencySum = 0;
+			for (int j = 0; j < DICTIONARY.length; j++) {
+				currCharFrequencySum += ( MyString.countChar(DICTIONARY[j], ((char) i)) );
+			}
+			frequencyArr[i-97] = currCharFrequencySum;
+		} // we now got an array with every char's frequency in dictionary. nice.
+
+		int[] cumalativeWeightsOfChars = new int[26];
+		cumalativeWeightsOfChars[0] = frequencyArr[0];
+		
+		for (int i = 1; i < 26; i++) {
+			cumalativeWeightsOfChars[i] = cumalativeWeightsOfChars[i-1] + frequencyArr[i];
+		} // we get every char to value of sum of itself and previous chars. why? of course.
+		
+
+		int totalSum = cumalativeWeightsOfChars[25]; // makes sense
+
+		/* prints the percentages of frequency for each char
+		double sum = 0;
+		for (int i = 0; i < 26; i++) {
+			System.out.println((char) (i + 97) + ": " + (double) Math.round((10000)*((double) frequencyArr[i]/totalSum))/100 + "%");
+			sum += (100)*((double) frequencyArr[i]/totalSum);
+		}
+		System.out.println(sum+"%");
+		*/
+
+		String randomStringBasedOnFrequency = "";
+		for (int i = 0; i < size; i++) {
+			// get random num between 0 and our total sum
+			int randNum = (int) (Math.random() * totalSum);
+			for (int j = 0; j < 25; j++) {
+				if (randNum <= cumalativeWeightsOfChars[j]) {
+					randomStringBasedOnFrequency = randomStringBasedOnFrequency + ( (char) (j + 97) );
+					break;
+				}
+			}
+		} // no further comments, explanation is trivial (read it in a hebrew accent).
+		
+		return randomStringBasedOnFrequency;
+	}
+
 
 	// Creates a random hand of length (HAND_SIZE - 2) and then inserts
 	// into it, at random indexes, the letters 'a' and 'e'
 	// (these two vowels make it easier for the user to construct words)
 	public static String createHand() {
-		//// Replace the following statement with your code
-		return null;
+		/*
+		  * this is the old boring random string :
+		String newHand = MyString.randomStringOfLetters(HAND_SIZE - 2);
+		newHand = MyString.insertRandomly('a', newHand);
+		newHand = MyString.insertRandomly('e', newHand);
+		*/
+
+		// this is the fun, new, cool random string based on frequency of chars
+		String newHand = frequencyOfCharBasedRandomStringOfLetters(HAND_SIZE);
+
+		return newHand;
 	}
 	
     // Runs a single hand in a Scrabble game. Each time the user enters a valid word:
@@ -85,9 +157,22 @@ public class Scrabble {
 			// non-whitespace characters. Whitespace is either space characters, or  
 			// end-of-line characters.
 			String input = in.readString();
-			//// Replace the following break statement with code
-			//// that completes the hand playing loop
-			break;
+
+			if (input.length() == 1 && input.charAt(0) == '.') {
+				break;
+			}
+			if (MyString.subsetOf(input, hand)) {
+				if (isWordInDictionary(input)) { // valid word
+					score += wordScore(input);
+					hand = MyString.remove(hand, input);
+					System.out.println(input + " earned " + wordScore(input) + " points. Score: " + score + " points\n");
+				} else {
+					System.out.println("No such word in the dictionary. Try again.\n");
+				}
+			} else {
+				System.out.println("Invalid word. Try again.\n");
+			}
+
 		}
 		if (hand.length() == 0) {
 	        System.out.println("Ran out of letters. Total score: " + score + " points");
@@ -110,9 +195,17 @@ public class Scrabble {
 			// Gets the user's input, which is all the characters entered by 
 			// the user until the user enter the ENTER character.
 			String input = in.readString();
-			//// Replace the following break statement with code
-			//// that completes the game playing loop
-			break;
+			
+			if (input.length() == 1 && input.charAt(0) == 'n') {
+				playHand(createHand());
+				break;
+			}
+			else if (input.length() == 1 && input.charAt(0) == 'e') {
+				break;
+			}
+			else {
+				System.out.println("I have given you very simple instructions so follow them.\n");
+			}
 		}
 	}
 
@@ -122,7 +215,7 @@ public class Scrabble {
 		////testScrabbleScore();    
 		////testCreateHands();  
 		////testPlayHands();
-		////playGame();
+		playGame();
 	}
 
 	public static void testBuildingTheDictionary() {
@@ -148,8 +241,8 @@ public class Scrabble {
 	}
 	public static void testPlayHands() {
 		init();
-		//playHand("ocostrza");
-		//playHand("arbffip");
-		//playHand("aretiin");
+		playHand("ocostrza");
+		playHand("arbffip");
+		playHand("aretiin");
 	}
 }
